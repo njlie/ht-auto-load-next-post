@@ -30,8 +30,14 @@ var content_container   = '#loop-container',
     post_list           = [],
     current_post_index  = 0;
     current_search_page = 1;
+    last_post_ready     = true;
     // ready               = auto_load_next_post_params.alnp_load_in_footer,
     // disable_mobile      = auto_load_next_post_params.alnp_disable_mobile;
+
+// const FETCH_ARTICLE_EVENT = new Event('fetch_article');
+// const FETCH_RESULTS_EVENT = new Event('fetch_results');
+
+// document.body.addEventListener
 
 function get_search_results ($) {
   // TODO: try to get an "al-" tag
@@ -48,14 +54,15 @@ function get_search_results ($) {
 
   console.log('search-term=', search_term);
   $.get(location.origin + `/page/${current_search_page}/?s=${search_term}` , function( data ) {
+    post_list = [];
     const posts = $(data).find('h2.post-title').find('a');
     for (let post of posts) {
       var href = $(post).attr('href');
-      console.log('post to load=', href);
       post_list.push(href);
     }
 
     current_search_page++;
+    console.log('new post_list=', post_list, 'current_search_page=', current_search_page, 'current_post_index=', current_post_index);
   });
 }
 
@@ -104,6 +111,11 @@ function get_search_results ($) {
 	// This function runs the Auto Load Next Post script.
 	function run_alnp() {
 		console.log('running alnp script');
+    var is_article = !!document.getElementById("hard-drive").className.split(/\s+/).find(classname => classname === "single");
+    if (!is_article) {
+      console.log("not an article, aborting");
+      return;
+    }
 		if ( $( 'article' ).length <= 0 ) {
 			article_container = 'div';
 		}
@@ -120,16 +132,12 @@ function get_search_results ($) {
 
 		// Add a post divider.
 		$( content_container ).prepend( '<hr style="height:0px;margin:0px;padding:0px;border:none;" data-powered-by="alnp" data-initial-post="true" data-title="' + post_title + '" data-url="' + orig_curr_url + '"/>' );
-		// $( '#loop-container' ).prepend( '<hr style="height:0px;margin:0px;padding:0px;border:none;" data-powered-by="alnp" data-initial-post="true" data-title="' + post_title + '" data-url="' + orig_curr_url + '"/>' );
 
 		// Mark the first article as the initial post.
 		$( content_container ).find( article_container ).attr( 'data-initial-post', true );
-		// $( '#loop-container' ).find( article_container ).attr( 'data-initial-post', true );
 
 		// Find the post ID of the initial loaded article.
 		var initial_post_id = $( content_container ).find( article_container ).attr( 'id' );
-		// var initial_post_id = $( '#loop-container' ).find( article_container ).attr( 'id' );
-		// var initial_post_id = initial_post_classes.find(el => el.includes('post-'));
 
 		// Apply post ID to the first post divider if found.
 		if ( typeof initial_post_id !== 'undefined' && initial_post_id.length > 0 ) {
@@ -260,7 +268,7 @@ function get_search_results ($) {
 		$( 'hr[data-powered-by="alnp"]' ).on( 'scrollSpy:exit', alnp_leave ); // Loads next post.
 		$( 'hr[data-powered-by="alnp"]' ).scrollSpy();
 		console.log('scrollspy called');
-	} // END scrollspy()
+	} // END `scrollspy`()
 
 	// Trigger multiple events
 	function triggerEvents(events, params) {
@@ -327,7 +335,9 @@ function get_search_results ($) {
 		// Look for the next post to load if any when leaving previous post.
 		if ( $direction == 'leave' ) {
 			console.log('leaving post');
-			auto_load_next_post();
+      if (post_count < 15) {
+  			auto_load_next_post();
+      }
 		}
 	} // END changePost()
 
@@ -336,8 +346,17 @@ function get_search_results ($) {
 	 */
 	function auto_load_next_post() {
     post_url = post_list[current_post_index];
-
-		// If the user can not read any more then stop looking for new posts.
+    console.log('post_url=', post_url);
+    console.log('current_post_index=', current_post_index);
+    // Increment post index. Reset if list is out of bounds.
+    if (current_post_index >= post_list.length - 1) {
+      current_post_index = 0;
+      get_search_results($);
+    } else {
+      current_post_index++;
+    }
+		
+    // If the user can not read any more then stop looking for new posts.
 		if ( stop_reading ) {
 			console.log('stop reading');
 			return;
@@ -349,7 +368,6 @@ function get_search_results ($) {
 			return;
 		}
 
-		console.log('post-url=', post_url);
 		// Override the post url via a trigger.
 		$( 'body' ).trigger( 'alnp-post-url', [ post_count, post_url ] );
 
@@ -368,13 +386,6 @@ function get_search_results ($) {
 			$( 'body' ).trigger( 'alnp-post-data', [ post ] );
 			data = post.html(); // Returns the HTML data of the next post that was loaded.
 
-      // Increment post index. Reset if list is out of bounds.
-      if (current_post_index >= post_list.length - 1) {
-        current_post_index = 0;
-        get_search_results($);
-      } else {
-        current_post_index++;
-      }
 
 			var post_divider = '<hr style="height:0px;margin:0px;padding:0px;border:none;" data-powered-by="alnp" data-initial-post="false" data-url="' + post_url + '"/>';
 			var post_html    = $( post_divider + data );
@@ -386,8 +397,8 @@ function get_search_results ($) {
 				post_ID = post_ID.replace( 'post-', '' ); // Make sure that only the post ID remains.
 			}
 
-			$( content_container ).append( post_html ); // Add next post.
-
+			$( content_container ).append( post_html ).append(function () { console.log('append for ' + post_url + ' is complete.')}); // Add next post.
+			
 			$( article_container + '[id="post-' + post_ID + '"]' ).attr( 'data-initial-post', false ); // Set article as not the initial post.
 
 			// Remove Comments.
@@ -402,10 +413,13 @@ function get_search_results ($) {
 
 			// Get the hidden "HR" element and add the missing post title and post id attributes.
 			$( 'hr[data-url="' + post_url + '"]').attr( 'data-title', post_title.text() ).attr( 'data-post-id', post_ID );
+      
+      post_count = post_count+1; // Updates the post count.
 
-			scrollspy(); // Need to set up ScrollSpy now that the new content has loaded.
-
-			post_count = post_count+1; // Updates the post count.
+      // Stop loading after 15 posts
+      if (post_count < 15) {
+  			scrollspy(); // Need to set up ScrollSpy now that the new content has loaded.
+      }
 
 			// Run an event once the post has loaded.
 			$( 'body' ).trigger( 'alnp-post-loaded', triggerParams );
