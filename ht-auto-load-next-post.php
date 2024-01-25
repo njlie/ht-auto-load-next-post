@@ -6,9 +6,9 @@
  * @author      Nathan Lie
  *
  * @wordpress-plugin
- * Plugin Name: Hard Times Auto Load Next Post
- * Description: Automatically loads posts for Hard Times & associated sites.
- * Version:     0.1.0
+ * Plugin Name: Hard Autoloader
+ * Description: Automatically loads posts for Hard Drive & associated sites.
+ * Version:     1.0.0
  * Author:      Nathan Lie
  * Author URI:  https://github.com/njlie
  */

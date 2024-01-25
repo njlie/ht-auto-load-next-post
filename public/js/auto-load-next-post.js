@@ -31,6 +31,8 @@ var content_container   = '#loop-container',
     current_post_index  = 0;
     current_search_page = 1;
     last_post_ready     = true;
+    initial_path        = new URL(window.location.href).pathname;
+    path_list           = [initial_path];
     // ready               = auto_load_next_post_params.alnp_load_in_footer,
     // disable_mobile      = auto_load_next_post_params.alnp_disable_mobile;
 
@@ -214,7 +216,7 @@ function get_search_results ($) {
 		// Update the History ONLY if we are NOT in the customizer.
 		if ( ! is_customizer ) {
 			// Note: We are using statechange instead of popstate
-			History.Adapter.bind( window, 'statechange', function() {
+			window.history.Adapter.bind( window, 'statechange', function() {
 				var state = History.getState(); // Note: We are using History.getState() instead of event.state
 
 				// If they returned back to the first post, then when you click the back button go to the url from which they came.
@@ -237,7 +239,7 @@ function get_search_results ($) {
 					if ( previous_post.length > 0 ) {
 						var previous_post_title = previous_post[0].dataset.title;
 
-						History.pushState(null, previous_post_title, state.url);
+						window.history.pushState(null, previous_post_title, state.url);
 
 						// Scroll to the top of the previous article.
 						$( 'html, body' ).animate({ scrollTop: (previous_post.offset().top - 100) }, 1000, function() {
@@ -326,7 +328,7 @@ function get_search_results ($) {
 
 			// Update the History ONLY if we are NOT in the customizer.
 			if ( ! is_customizer ) {
-				History.pushState(null, this_title, this_url);
+				window.history.pushState(null, this_title, this_url);
 			}
 
 			$( 'body' ).trigger( 'alnp-post-changed', [ this_title, this_url, this_post_id, post_count, stop_reading, initial_post ] );
@@ -346,7 +348,9 @@ function get_search_results ($) {
 	 */
 	function auto_load_next_post() {
     post_url = post_list[current_post_index];
+    var post_path = new URL(post_url).pathname;
     console.log('post_url=', post_url);
+    console.log('post_pathname=', post_path);
     console.log('current_post_index=', current_post_index);
     // Increment post index. Reset if list is out of bounds.
     if (current_post_index >= post_list.length - 1) {
@@ -367,6 +371,12 @@ function get_search_results ($) {
 			console.log('nav_container length 0');
 			return;
 		}
+
+    // If we previously loaded the page, skip it.
+    if ( path_list.contains(post_path) ) {
+      console.log('already loaded ', post_path);
+      return;
+    }
 
 		// Override the post url via a trigger.
 		$( 'body' ).trigger( 'alnp-post-url', [ post_count, post_url ] );
