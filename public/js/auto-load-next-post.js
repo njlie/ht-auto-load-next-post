@@ -373,9 +373,15 @@ function get_search_results ($) {
 		}
 
     // If we previously loaded the page, skip it.
-    if ( path_list.contains(post_path) ) {
+    if ( path_list.includes(post_path) ) {
       console.log('already loaded ', post_path);
-      return;
+      post_url = post_list[current_post_index];
+      current_post_index++;
+      post_path = new URL(post_url).pathname;
+      console.log('new path=', post_path);
+    }
+    while (path_list.includes(post_path)) {
+
     }
 
 		// Override the post url via a trigger.
