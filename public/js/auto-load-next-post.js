@@ -380,9 +380,9 @@ function get_search_results ($) {
       post_path = new URL(post_url).pathname;
       console.log('new path=', post_path);
     }
-    while (path_list.includes(post_path)) {
+    // while (path_list.includes(post_path)) {
 
-    }
+    // }
 
 		// Override the post url via a trigger.
 		$( 'body' ).trigger( 'alnp-post-url', [ post_count, post_url ] );
@@ -394,7 +394,29 @@ function get_search_results ($) {
 		var np_url = '';
 		console.log('np_url=', np_url);
 
-		$.get( post_url , function( data ) {
+		var isHdMain = true;
+		// Try 3 times to find an article in the list that isn't on main page
+		var mainArticleTries = 0;
+		while (isHdMain && mainArticleTries < 3) {
+			var post_tags = []
+			$.get( post_url, function (data) { 
+				var postData = $(data).find(content_container);
+				post_tags = $($(postData).find("[data-article-tags]")).attr("data-article-tags").split(', ');
+				console.log('post_tags=', post_tags, 'for=', post_url)
+			})
+			if (!post_tags.includes("hdmain")) {
+				console.log("did not include hdmain")
+				isHdMain = false;
+				break;
+			}
+			current_post_index++;
+			post_url = post_list[current_post_index];
+			mainArticleTries++;
+			console.log('updating post_url=', post_url)
+		}
+
+		// TODO: reduce amount of requests
+		$.get( post_url , function ( data ) {
 			var postData = $(data).find(content_container);
 			var post = $( "<div>" + postData.html() + "</div>" );
 
@@ -409,6 +431,7 @@ function get_search_results ($) {
 			var post_ID      = $( post ).find( article_container ).attr( 'id' ); // Find the post ID of the loaded article.
 			var triggerParams = [ post_title.text(), post_url, post_ID, post_count ];
 
+			var post_tags = $($(post_html).find("[data-article-tags]")).attr("data-article-tags").split(', ');
 			if ( typeof post_ID !== typeof undefined && post_ID !== "" ) {
 				post_ID = post_ID.replace( 'post-', '' ); // Make sure that only the post ID remains.
 			}
